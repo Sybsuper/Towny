@@ -4,6 +4,7 @@ import com.palmergames.bukkit.towny.TownySettings;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
+import org.jetbrains.annotations.ApiStatus;
 
 /**
  * A class to hold and calculate coordinates in a grid according to the size
@@ -31,13 +32,11 @@ public class Coord {
 	}
 
 	public int getX() {
-
-		return x;
+		return this.x;
 	}
 
 	public int getZ() {
-
-		return z;
+		return this.z;
 	}
 
 	public Coord add(int xOffset, int zOffset) {
@@ -122,5 +121,67 @@ public class Coord {
 	public static int getCellSize() {
 
 		return cellSize;
+	}
+
+	@ApiStatus.Internal
+	public final long getCoordinateKey() {
+		return (((long) this.getX()) << 32) | (this.getZ() & 0xFFFFFFFFL);
+	}
+
+	@ApiStatus.Internal
+	public static int getKeyX(long key) {
+		return (int) (key >> 32);
+	}
+
+	@ApiStatus.Internal
+	public static int getKeyZ(long key) {
+		return (int) key;
+	}
+	
+	public Coord immutable() {
+		return this;
+	}
+	
+	public Coord.Mutable mutable() {
+		return new Coord.Mutable(this.x, this.z);
+	}
+	
+	public static class Mutable extends Coord {
+		private int x;
+		private int z;
+		
+		public Mutable(int x, int z) {
+			super(x, z);
+			this.x = x;
+			this.z = z;
+		}
+
+		@Override
+		public int getX() {
+			return this.x;
+		}
+
+		@Override
+		public int getZ() {
+			return this.z;
+		}
+
+		public void setX(int x) {
+			this.x = x;
+		}
+
+		public void setZ(int z) {
+			this.z = z;
+		}
+
+		@Override
+		public Coord immutable() {
+			return new Coord(this.x, this.z);
+		}
+
+		@Override
+		public Coord.Mutable mutable() {
+			return this;
+		}
 	}
 }

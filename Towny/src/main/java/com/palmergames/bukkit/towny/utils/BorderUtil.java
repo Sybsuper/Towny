@@ -3,6 +3,7 @@ package com.palmergames.bukkit.towny.utils;
 import com.github.bsideup.jabel.Desugar;
 import com.palmergames.bukkit.towny.TownyAPI;
 import com.palmergames.bukkit.towny.object.CellBorder;
+import com.palmergames.bukkit.towny.object.Coord;
 import com.palmergames.bukkit.towny.object.Resident;
 import com.palmergames.bukkit.towny.object.Town;
 import com.palmergames.bukkit.towny.object.TownBlock;
@@ -214,15 +215,17 @@ public class BorderUtil {
 			maxZ = Math.max(maxZ, coord.getZ());
 		}
 
-		final Set<WorldCoord> valid = new HashSet<>();
-		final Set<WorldCoord> visited = new HashSet<>();
+		final Set<Long> valid = new HashSet<>();
+		final Set<Long> visited = new HashSet<>();
 
-		final Queue<WorldCoord> queue = new LinkedList<>();
-		queue.offer(origin);
-		visited.add(origin);
+		final Queue<Long> queue = new LinkedList<>();
+		queue.offer(origin.getCoordinateKey());
+		visited.add(origin.getCoordinateKey());
+		
+		final WorldCoord.Mutable mutableWorldCoord = origin.mutable();
 
 		while (!queue.isEmpty()) {
-			final WorldCoord current = queue.poll();
+			final long current = queue.poll();
 
 			valid.add(current);
 
@@ -230,20 +233,37 @@ public class BorderUtil {
 				final int xOffset = direction[0];
 				final int zOffset = direction[1];
 
-				final WorldCoord candidate = current.add(xOffset, zOffset);
+				int x = Coord.getKeyX(current) + xOffset;
+				int z = Coord.getKeyZ(current) + zOffset;
 
-				if (!coords.contains(candidate) && (candidate.getX() >= maxX || candidate.getX() <= minX || candidate.getZ() >= maxZ || candidate.getZ() <= minZ)) {
+				mutableWorldCoord.setX(x);
+				mutableWorldCoord.setZ(z);
+
+				if (!coords.contains(mutableWorldCoord) && (x >= maxX || x <= minX || z >= maxZ || z <= minZ)) {
 					return FloodfillResult.oob();
 				}
 
-				if (!candidate.hasTownBlock() && !visited.contains(candidate) && !coords.contains(candidate)) {
-					queue.offer(candidate);
-					visited.add(candidate);
+				final long packed = mutableWorldCoord.getCoordinateKey();
+				final TownBlock townBlock = mutableWorldCoord.getTownBlockOrNull();
+
+				// Touching another town
+				if (townBlock != null && townBlock.hasTown() && !town.equals(townBlock.getTownOrNull())) {
+					return FloodfillResult.fail("Flood fill selection must not contain other towns.");
+				}
+
+				if (townBlock == null && !visited.contains(packed) && !coords.contains(mutableWorldCoord)) {
+					queue.offer(packed);
+					visited.add(packed);
 				}
 			}
 		}
 
-		return FloodfillResult.success(valid);
+		final Set<WorldCoord> converted = new HashSet<>();
+		for (final long key : valid) {
+			converted.add(new WorldCoord(originWorld.getName(), originWorld.getUUID(), Coord.getKeyX(key), Coord.getKeyZ(key)));
+		}
+
+		return FloodfillResult.success(converted);
 	}
 
 	@Desugar

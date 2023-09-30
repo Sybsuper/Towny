@@ -80,6 +80,10 @@ public class WorldCoord extends Coord {
 	public String getWorldName() {
 		return this.worldName;
 	}
+	
+	public UUID getWorldUUID() {
+		return this.worldUUID;
+	}
 
 	public Coord getCoord() {
 		return new Coord(getX(), getZ());
@@ -106,7 +110,7 @@ public class WorldCoord extends Coord {
 	}
 
 	public WorldCoord add(int xOffset, int zOffset) {
-		return new WorldCoord(getWorldName(), worldUUID, getX() + xOffset, getZ() + zOffset);
+		return new WorldCoord(getWorldName(), getWorldUUID(), getX() + xOffset, getZ() + zOffset);
 	}
 
 	@Override
@@ -349,5 +353,68 @@ public class WorldCoord extends Coord {
 
 	public boolean canBeStolen() {
 		return TownySettings.isOverClaimingAllowingStolenLand() && hasTownBlock() && getTownOrNull().isOverClaimed();
+	}
+
+	@Override
+	public WorldCoord immutable() {
+		return this;
+	}
+
+	@Override
+	public WorldCoord.Mutable mutable() {
+		return new WorldCoord.Mutable(this);
+	}
+
+	public static class Mutable extends WorldCoord {
+		private String worldName;
+		private UUID worldUUID;
+		private int x;
+		private int z;
+
+		public Mutable(WorldCoord worldCoord) {
+			super(worldCoord);
+			this.worldName = worldCoord.worldName;
+			this.worldUUID = worldCoord.worldUUID;
+			this.x = worldCoord.getX();
+			this.z = worldCoord.getZ();
+		}
+
+		@Override
+		public int getX() {
+			return this.x;
+		}
+
+		@Override
+		public int getZ() {
+			return this.z;
+		}
+
+		@Override
+		public String getWorldName() {
+			return this.worldName;
+		}
+
+		public void setX(int x) {
+			this.x = x;
+		}
+
+		public void setZ(int z) {
+			this.z = z;
+		}
+
+		public void setWorld(@NotNull TownyWorld world) {
+			this.worldName = world.getName();
+			this.worldUUID = world.getUUID();
+		}
+
+		@Override
+		public WorldCoord immutable() {
+			return new WorldCoord(this);
+		}
+
+		@Override
+		public WorldCoord.Mutable mutable() {
+			return this;
+		}
 	}
 }
